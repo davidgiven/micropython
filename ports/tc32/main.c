@@ -4,6 +4,7 @@
 #include "py/compile.h"
 #include "py/gc.h"
 #include "py/mperrno.h"
+#include "py/mphal.h"
 #include "py/repl.h"
 #include "py/runtime.h"
 #include "shared/runtime/pyexec.h"
@@ -12,8 +13,7 @@
 
 _attribute_ram_code_ void irq_handler(void) {}
 
-static char *stack_top;
-static char heap[MICROPY_HEAP_SIZE];
+extern uint8_t _end_bss_;
 
 void do_str(const char *src, mp_parse_input_kind_t input_kind) {
   nlr_buf_t nlr;
@@ -39,45 +39,48 @@ mp_import_stat_t mp_import_stat(const char *path) {
   return MP_IMPORT_STAT_NO_EXIST;
 }
 
-void nlr_jump_fail(void *val) {
-  while (1) {
-    ;
-  }
+mp_obj_t mp_builtin_open(size_t n_args, const mp_obj_t *args,
+                         mp_map_t *kwargs) {
+  return mp_const_none;
 }
+MP_DEFINE_CONST_FUN_OBJ_KW(mp_builtin_open_obj, 1, mp_builtin_open);
 
 void NORETURN __fatal_error(const char *msg) {
+  mp_hal_stdout_tx_strn(msg, strlen(msg));
   while (1) {
     ;
   }
 }
 
-void gc_collect(void) {
-  // WARNING: This gc_collect implementation doesn't try to get root
-  // pointers from CPU registers, and thus may function incorrectly.
-  void *dummy;
-  gc_collect_start();
-  gc_collect_root(&dummy, ((mp_uint_t)stack_top - (mp_uint_t)&dummy) /
-                              sizeof(mp_uint_t));
-  gc_collect_end();
-  gc_dump_info(&mp_plat_print);
+void nlr_jump_fail(void *val) { __fatal_error("NLR jump fail"); }
+
+#if !MICROPY_DEBUG_PRINTERS
+// With MICROPY_DEBUG_PRINTERS disabled DEBUG_printf is not defined but it
+// is still needed by esp-open-lwip for debugging output, so define it here.
+#include <stdarg.h>
+int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args);
+int DEBUG_printf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  int ret = mp_vprintf(MICROPY_DEBUG_PRINTER, fmt, ap);
+  va_end(ap);
+  return ret;
 }
+#endif
 
 int main() {
   cpu_wakeup_init();
   clock_init(SYS_CLK_16M_Crystal);
   gpio_init();
 
-uart_init();
+  uart_init();
 
   gpio_set_func(PIN, AS_GPIO);
   gpio_set_output_en(PIN, 1);
   gpio_set_input_en(PIN, 0);
   gpio_write(PIN, 1);
 
-  int stack_dummy;
-  stack_top = (char *)&stack_dummy;
-
-  gc_init(heap, heap + sizeof(heap));
+  gc_init((void *)&_end_bss_, (void *)0x80c000);
   mp_init();
   pyexec_friendly_repl();
   mp_deinit();

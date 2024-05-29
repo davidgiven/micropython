@@ -11,6 +11,8 @@ QSTR_DEFS = qstrdefsport.h
 # MicroPython feature configurations
 MICROPY_ROM_TEXT_COMPRESSION ?= 1
 
+FROZEN_MANIFEST = manifest.py
+
 # include py core make definitions
 include $(TOP)/py/py.mk
 
@@ -35,6 +37,7 @@ LIBS = $(TC32_SDK)/proj_lib/liblt_5316.a \
 SRC_C = \
 	main.c \
 	uart.c \
+	gccollect.c \
 	$(TC32_SDK)/drivers/5316/adc.c \
 	$(TC32_SDK)/drivers/5316/analog.c \
 	$(TC32_SDK)/drivers/5316/bsp.c \
@@ -46,10 +49,12 @@ SRC_C = \
 	shared/readline/readline.c \
 	shared/runtime/pyexec.c \
 	shared/runtime/stdout_helpers.c \
+	shared/runtime/gchelper_native.c \
 	$(BUILD)/_frozen_mpy.c \
 
 SRC_S = \
-	$(TC32_SDK)/boot/5316/cstartup_5316.S
+	$(TC32_SDK)/boot/5316/cstartup_5316.S \
+	shared/runtime/gchelper_tc32.S \
 
 SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c
 
