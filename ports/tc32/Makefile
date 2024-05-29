@@ -34,6 +34,7 @@ LIBS = $(TC32_SDK)/proj_lib/liblt_5316.a \
 
 SRC_C = \
 	main.c \
+	uart.c \
 	$(TC32_SDK)/drivers/5316/adc.c \
 	$(TC32_SDK)/drivers/5316/analog.c \
 	$(TC32_SDK)/drivers/5316/bsp.c \

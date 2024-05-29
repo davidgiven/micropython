@@ -1,15 +1,4 @@
-#include "drivers/5316/bsp.h"
-#include "drivers/5316/clock.h"
-#include "drivers/5316/compiler.h"
-#include "drivers/5316/driver_5316.h"
-#include "drivers/5316/gpio.h"
-#include "drivers/5316/timer.h"
-#include "drivers/5316/uart.h"
-
-#undef __SIZE_TYPE__
-#define __SIZE_TYPE__ u32
-#undef __WCHAR_TYPE__
-#define __WCHAR_TYPE__ u16
+#include "port.h"
 
 #include "py/builtin.h"
 #include "py/compile.h"
@@ -40,14 +29,6 @@ void do_str(const char *src, mp_parse_input_kind_t input_kind) {
     // uncaught exception
     mp_obj_print_exception(&mp_plat_print, (mp_obj_t)nlr.ret_val);
   }
-}
-
-int mp_hal_stdin_rx_chr(void) { return -1; }
-
-mp_uint_t mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
-  while (len--)
-    uart_ndma_send_byte(*str++);
-  return 0;
 }
 
 mp_lexer_t *mp_lexer_new_from_file(qstr filename) {
@@ -86,8 +67,7 @@ int main() {
   clock_init(SYS_CLK_16M_Crystal);
   gpio_init();
 
-  uart_set_pin(GPIO_PB4, GPIO_PB5);
-  uart_init_baudrate(9, 13, PARITY_NONE, STOP_BIT_ONE);
+uart_init();
 
   gpio_set_func(PIN, AS_GPIO);
   gpio_set_output_en(PIN, 1);
