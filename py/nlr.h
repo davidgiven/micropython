@@ -44,7 +44,6 @@
 #define MICROPY_NLR_NUM_REGS_MIPS           (13)
 #define MICROPY_NLR_NUM_REGS_XTENSA         (10)
 #define MICROPY_NLR_NUM_REGS_XTENSAWIN      (17)
-#define MICROPY_NLR_NUM_REGS_TC32           (10) // same as Thumb2
 
 // *FORMAT-OFF*
 
@@ -89,9 +88,6 @@
 #elif defined(__mips__)
     #define MICROPY_NLR_MIPS (1)
     #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_MIPS)
-#elif defined(__tc32__)
-    #define MICROPY_NLR_TC32 (1)
-    #define MICROPY_NLR_NUM_REGS (MICROPY_NLR_NUM_REGS_TC32)
 #else
     #define MICROPY_NLR_SETJMP (1)
     //#warning "No native NLR support for this arch, using setjmp implementation"
