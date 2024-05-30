@@ -68,7 +68,7 @@ int DEBUG_printf(const char *fmt, ...) {
 }
 #endif
 
-int main() {
+MP_NOINLINE static void main_impl() {
   cpu_wakeup_init();
   clock_init(SYS_CLK_16M_Crystal);
   gpio_init();
@@ -80,11 +80,25 @@ int main() {
   gpio_set_input_en(PIN, 0);
   gpio_write(PIN, 1);
 
-  /* The Telink SDK doesn't define any symbols for these, so we just hard code it. The stack starts at the end of memory, 0x80c000. We leave 1kB for it,
+  /* The Telink SDK doesn't define any symbols for these, so we just hard code
+   * it. The stack starts at the end of memory, 0x80c000. We leave 1kB for it,
    * meaning that our heap needs to end at 0x80bc00. */
   gc_init((void *)&_end_bss_, (void *)0x80bc00);
   mp_init();
   pyexec_friendly_repl();
   mp_deinit();
+}
+
+int main() {
+#if MICROPY_PY_THREAD
+  mp_thread_init();
+#endif
+  // We should capture stack top ASAP after start, and it should be
+  // captured guaranteedly before any other stack variables are allocated.
+  // For this, actual main (renamed main_impl) should not be inlined into
+  // this function. main_impl() itself may have other functions inlined (with
+  // their own stack variables), that's why we need this main/main_impl split.
+  mp_stack_ctrl_init();
+  main_impl();
   return 0;
 }
