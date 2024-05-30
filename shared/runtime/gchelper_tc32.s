@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Damien P. George
+ * Copyright (c) 2013-2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,30 +23,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef MICROPY_INCLUDED_LIB_UTILS_GCHELPER_H
-#define MICROPY_INCLUDED_LIB_UTILS_GCHELPER_H
 
-#include <stdint.h>
+    .section .text
+    .align  2
 
-#if MICROPY_GCREGS_SETJMP
-#include <setjmp.h>
-typedef jmp_buf gc_helper_regs_t;
-#else
+    .global gc_helper_get_regs_and_sp
+    .type gc_helper_get_regs_and_sp, %function
 
-#if defined(__x86_64__)
-typedef uintptr_t gc_helper_regs_t[6];
-#elif defined(__i386__)
-typedef uintptr_t gc_helper_regs_t[4];
-#elif defined(__thumb2__) || defined(__thumb__) || defined(__arm__)
-typedef uintptr_t gc_helper_regs_t[10];
-#elif defined(__aarch64__)
-typedef uintptr_t gc_helper_regs_t[11]; // x19-x29
-#elif defined(__tc32__)
-typedef uintptr_t gc_helper_regs_t[10];
-#endif
+@ The TC32 is basically a Thumb with marginally different instructions and
+@ instruction encodings, so this is copied from the Thumb implementation with
+@ some search-and-replace.
 
-#endif
+@ uint gc_helper_get_regs_and_sp(r0=uint regs[10])
+gc_helper_get_regs_and_sp:
+    @ store registers into given array
+    tstorer r4, [r0, #0]
+    tstorer r5, [r0, #4]
+    tstorer r6, [r0, #8]
+    tstorer r7, [r0, #12]
+    tmovs r1, r8
+    tstorer r1, [r0, #16]
+    tmovs r1, r9
+    tstorer r1, [r0, #20]
+    tmovs r1, r10
+    tstorer r1, [r0, #24]
+    tmovs r1, r11
+    tstorer r1, [r0, #28]
+    tmovs r1, r12
+    tstorer r1, [r0, #32]
+    tmovs r1, r13
+    tstorer r1, [r0, #36]
 
-void gc_helper_collect_regs_and_stack(void);
+    @ return the sp
+    tmov r0, sp
+    tjex lr
 
-#endif // MICROPY_INCLUDED_LIB_UTILS_GCHELPER_H
+    .size gc_helper_get_regs_and_sp, .-gc_helper_get_regs_and_sp

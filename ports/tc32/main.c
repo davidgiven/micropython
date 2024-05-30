@@ -80,7 +80,9 @@ int main() {
   gpio_set_input_en(PIN, 0);
   gpio_write(PIN, 1);
 
-  gc_init((void *)&_end_bss_, (void *)0x80c000);
+  /* The Telink SDK doesn't define any symbols for these, so we just hard code it. The stack starts at the end of memory, 0x80c000. We leave 1kB for it,
+   * meaning that our heap needs to end at 0x80bc00. */
+  gc_init((void *)&_end_bss_, (void *)0x80bc00);
   mp_init();
   pyexec_friendly_repl();
   mp_deinit();
