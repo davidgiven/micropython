@@ -22,7 +22,7 @@ INC += -I$(TC32_SDK)
 INC += -I$(TOP)
 INC += -I$(BUILD)
 
-CFLAGS_TC32 = -fdata-sections -ffunction-sections -DMCU_STARTUP_5316
+CFLAGS_TC32 = -fdata-sections -ffunction-sections -DMCU_STARTUP_5316 -fno-jump-tables
 CFLAGS += $(INC) -Wall -Werror -std=c99 -nostdlib $(CFLAGS_TC32) $(COPT)
 LDFLAGS += -nostdlib -T $(TC32_SDK)/boot.link -Map=$@.map --cref --gc-sections
 

@@ -15,6 +15,7 @@
 #define MICROPY_HELPER_REPL               (1)
 #define MICROPY_ENABLE_EXTERNAL_IMPORT    (0)
 #define MICROPY_DEBUG_VERBOSE             (0)
+#define MICROPY_DEBUG_PRINTERS            (0)
 
 #define MICROPY_ALLOC_PATH_MAX            (256)
 
