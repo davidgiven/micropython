@@ -51,6 +51,13 @@ CFLAGS_TC32 += -DMCU_$(MCU_SERIES)
 # Work around bugs in Telink's SDK.
 CFLAGS_TC32 += -isystem include
 
+# LFS configuration.
+CFLAGS_TC32 += -DLFS1_NO_MALLOC
+CFLAGS_TC32 += -DLFS1_NO_DEBUG
+CFLAGS_TC32 += -DLFS1_NO_WARN
+CFLAGS_TC32 += -DLFS1_NO_ERROR
+CFLAGS_TC32 += -DLFS1_NO_ASSERT
+
 # Flags for optional C++ source code
 CXXFLAGS += $(filter-out -std=c99,$(CFLAGS))
 
@@ -62,25 +69,30 @@ SRC_C += \
 	uart.c \
 	gccollect.c \
 	machine_pin.c \
+	tc32_flash.c \
+	modtc32.c \
 	$(TC32_SDK)/drivers/5316/adc.c \
 	$(TC32_SDK)/drivers/5316/analog.c \
 	$(TC32_SDK)/drivers/5316/bsp.c \
 	$(TC32_SDK)/drivers/5316/clock.c \
 	$(TC32_SDK)/drivers/5316/gpio.c \
 	$(TC32_SDK)/drivers/5316/uart.c \
+	$(TC32_SDK)/drivers/5316/flash.c \
 	shared/libc/string0.c \
 	shared/libc/printf.c \
 	shared/readline/readline.c \
 	shared/runtime/pyexec.c \
 	shared/runtime/stdout_helpers.c \
 	shared/runtime/gchelper_native.c \
+	lib/littlefs/lfs1.c \
+	lib/littlefs/lfs1_util.c \
 
 SRC_S += \
 	$(TC32_SDK)/boot/5316/cstartup_5316.S \
 	shared/runtime/gchelper_tc32.S \
 
 SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c $(GEN_PINS_SRC)
-SRC_QSTR += machine_pin.c
+SRC_QSTR += machine_pin.c main.c modtc32.c
 
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
