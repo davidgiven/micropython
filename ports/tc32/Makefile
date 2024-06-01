@@ -48,6 +48,10 @@ LDFLAGS += -nostdlib -T $(TC32_SDK)/boot.link -Map=$@.map --cref --gc-sections
 CFLAGS += -Os -DNDEBUG -g -Wno-error
 CFLAGS_TC32 += -DMCU_$(MCU_SERIES)
 
+# Bits of Micropython are in C11. However, Telink's compiler doesn't support
+# this, but luckily the bits we need (anonymous unions) are a GNU extension.
+CFLAGS_TC32 += -std=gnu99
+
 # Work around bugs in Telink's SDK.
 CFLAGS_TC32 += -isystem include
 
@@ -71,6 +75,7 @@ SRC_C += \
 	machine_pin.c \
 	tc32_flash.c \
 	modtc32.c \
+	math.c \
 	$(TC32_SDK)/drivers/5316/adc.c \
 	$(TC32_SDK)/drivers/5316/analog.c \
 	$(TC32_SDK)/drivers/5316/bsp.c \

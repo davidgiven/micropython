@@ -19,6 +19,9 @@
 #define MICROPY_ENABLE_FINALISER (1)
 #define MICROPY_LONGINT_IMPL (MICROPY_LONGINT_IMPL_MPZ)
 
+// This doesn't work. Maybe Telink's floating point emulation is broken.
+// #define MICROPY_FLOAT_IMPL (MICROPY_FLOAT_IMPL_FLOAT)
+
 #define MICROPY_PY_MACHINE (1)
 #define MICROPY_PY_MACHINE_INCLUDEFILE "ports/tc32/modmachine.c"
 #define MICROPY_PY_MACHINE_PIN_MAKE_NEW mp_pin_make_new
