@@ -1,5 +1,8 @@
 #include "port.h"
 
+#include "extmod/modmachine.h"
+#include "machine_pin.h"
+#include "modmachine.h"
 #include "py/builtin.h"
 #include "py/compile.h"
 #include "py/gc.h"
@@ -85,6 +88,7 @@ MP_NOINLINE static void main_impl() {
    * meaning that our heap needs to end at 0x80bc00. */
   gc_init((void *)&_end_bss_, (void *)0x80bc00);
   mp_init();
+  machine_init();
   pyexec_friendly_repl();
   mp_deinit();
 }
