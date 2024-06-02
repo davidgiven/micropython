@@ -69,13 +69,14 @@ LIBS = $(TC32_SDK)/proj_lib/liblt_5316.a \
 	$(shell $(CC) -print-libgcc-file-name)
 
 SRC_C += \
-	main.c \
-	uart.c \
 	gccollect.c \
 	machine_pin.c \
-	tc32_flash.c \
-	modtc32.c \
+	main.c \
 	math.c \
+	modtc32.c \
+	tc32_flash.c \
+	tc32_screen.c \
+	uart.c \
 	$(TC32_SDK)/drivers/5316/adc.c \
 	$(TC32_SDK)/drivers/5316/analog.c \
 	$(TC32_SDK)/drivers/5316/bsp.c \
@@ -83,6 +84,7 @@ SRC_C += \
 	$(TC32_SDK)/drivers/5316/gpio.c \
 	$(TC32_SDK)/drivers/5316/uart.c \
 	$(TC32_SDK)/drivers/5316/flash.c \
+	$(TC32_SDK)/drivers/5316/spi.c \
 	shared/libc/string0.c \
 	shared/libc/printf.c \
 	shared/readline/readline.c \
@@ -97,7 +99,7 @@ SRC_S += \
 	shared/runtime/gchelper_tc32.S \
 
 SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c $(GEN_PINS_SRC)
-SRC_QSTR += machine_pin.c main.c modtc32.c
+SRC_QSTR += machine_pin.c main.c modtc32.c tc32_flash.c tc32_screen.c
 
 OBJ += $(PY_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))

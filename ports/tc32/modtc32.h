@@ -29,5 +29,6 @@
 #include "py/obj.h"
 
 extern const mp_obj_type_t tc32_flash_type;
+extern const mp_obj_type_t tc32_screen_type;
 
 #endif // MICROPY_INCLUDED_TC32_MODTC32_H

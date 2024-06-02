@@ -47,8 +47,7 @@ static tc32_flash_obj_t tc32_flash_obj = {{&tc32_flash_type}};
 
 static mp_obj_t tc32_flash_make_new(const mp_obj_type_t *type, size_t n_args,
                                     size_t n_kw, const mp_obj_t *all_args) {
-  // No args required. bdev=Flash(). Start Addr & Size defined in
-  // tc32_flash_obj.
+  // No args required.
   mp_arg_check_num(n_args, n_kw, 0, 0, false);
 
   uint32_t mid = flash_read_mid();

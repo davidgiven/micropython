@@ -31,6 +31,7 @@
 static const mp_rom_map_elem_t tc32_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_tc32)},
     {MP_ROM_QSTR(MP_QSTR_Flash), MP_ROM_PTR(&tc32_flash_type)},
+    {MP_ROM_QSTR(MP_QSTR_Screen), MP_ROM_PTR(&tc32_screen_type)},
 };
 static MP_DEFINE_CONST_DICT(tc32_module_globals, tc32_module_globals_table);
 

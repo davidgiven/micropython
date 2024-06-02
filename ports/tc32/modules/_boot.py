@@ -11,4 +11,8 @@ except:
     fs = vfs.VfsLfs1(bdev, progsize=256)
 vfs.mount(fs, "/")
 
-del vfs, bdev, fs, tc32
+del vfs, bdev, fs
+
+screen = tc32.Screen(width=80, height=160, xoffset=24, yoffset=0)
+screen.line(0, 0, 80, 160, 0xFFFF)
+screen.line(80, 0, 0, 160, 0xFFFF)
