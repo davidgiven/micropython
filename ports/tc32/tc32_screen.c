@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "modtc32.h"
 #include "port.h"
 #include "py/binary.h"
@@ -730,18 +731,19 @@ static mp_obj_t screen_text(size_t n_args, const mp_obj_t *args_in) {
   mp_int_t x = mp_obj_get_int(args_in[2]);
   mp_int_t y = mp_obj_get_int(args_in[3]);
   mp_int_t col = 0xffff;
-  mp_int_t rx = 1, ry = 0;
-  mp_int_t dx = 0, dy = 1;
+  mp_int_t rx, ry;
+  mp_int_t dx, dy;
+  mp_int_t dir = 0;
   if (n_args >= 5) {
     col = mp_obj_get_int(args_in[4]);
   }
   if (n_args >= 6) {
-    int dir = mp_obj_get_int(args_in[5]) & 3;
-    rx = directions[dir][0][0];
-    ry = directions[dir][0][1];
-    dx = directions[dir][1][0];
-    dy = directions[dir][1][1];
+    dir = mp_obj_get_int(args_in[5]) & 3;
   }
+  rx = directions[dir][0][0];
+  ry = directions[dir][0][1];
+  dx = directions[dir][1][0];
+  dy = directions[dir][1][1];
   if (n_args >= 7) {
     int scale = mp_obj_get_int(args_in[6]);
     rx *= scale;
