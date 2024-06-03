@@ -4,6 +4,8 @@
 #include "py/mphal.h"
 #include "py/runtime.h"
 
+#include "extmod/font_petme128_8x8.h"
+
 // 16 Mhz.
 #define SYSTEM_CLOCK 16000000
 
@@ -310,7 +312,7 @@ void screen_init() {
   // 0x08 - swap BGR/RGB order
   //
   spi_send_cmd(TFT_CMD_MADCTL);
-  spi_write8(0x88);
+  spi_write8(0xc8);
   sleep_us(10);
 
   // Set pixel color format (565 RGB - 16 bits per pixel).
@@ -696,6 +698,43 @@ static mp_obj_t screen_poly(size_t n_args, const mp_obj_t *args_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_poly_obj, 5, 6, screen_poly);
 
+static mp_obj_t screen_text(size_t n_args, const mp_obj_t *args_in) {
+    // extract arguments
+    const char *str = mp_obj_str_get_str(args_in[1]);
+    mp_int_t x0 = mp_obj_get_int(args_in[2]);
+    mp_int_t y0 = mp_obj_get_int(args_in[3]);
+    mp_int_t col = 1;
+    if (n_args >= 5) {
+        col = mp_obj_get_int(args_in[4]);
+    }
+
+    // loop over chars
+    for (; *str; ++str) {
+        // get char and make sure its in range of font
+        int chr = *(uint8_t *)str;
+        if (chr < 32 || chr > 127) {
+            chr = 127;
+        }
+        // get char data
+        const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
+        // loop over char data
+        for (int j = 0; j < 8; j++, x0++) {
+            if (0 <= x0 && x0 < screen_obj.width) { // clip x
+                uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
+                for (int y = y0; vline_data; vline_data >>= 1, y++) { // scan over vertical column
+                    if (vline_data & 1) { // only draw if pixel set
+                        if (0 <= y && y < screen_obj.height) { // clip y
+                            setpixel(x0, y, col);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_text_obj, 4, 5, screen_text);
+
 static const mp_rom_map_elem_t screen_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_readreg), MP_ROM_PTR(&screen_readreg_obj)},
     {MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&screen_fill_obj)},
@@ -707,9 +746,7 @@ static const mp_rom_map_elem_t screen_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&screen_line_obj)},
     {MP_ROM_QSTR(MP_QSTR_ellipse), MP_ROM_PTR(&screen_ellipse_obj)},
     {MP_ROM_QSTR(MP_QSTR_poly), MP_ROM_PTR(&screen_poly_obj)},
-#if 0
     { MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&screen_text_obj) },
-#endif
 };
 static MP_DEFINE_CONST_DICT(screen_locals_dict, screen_locals_dict_table);
 
