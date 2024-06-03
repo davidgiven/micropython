@@ -1,5 +1,6 @@
 #include "modtc32.h"
 #include "port.h"
+#include "py/binary.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
 
@@ -8,7 +9,7 @@
 
 // SPI clock = SYSTEM_CLOCK / (2 * (SPI_DIV + 1))
 // For exaxmple, by setting it to 15, we get 2 uS SPI clock period.
-#define SPI_DIV 3
+#define SPI_DIV 1
 
 // SDA/MOSI.
 #define PIN_SDA GPIO_PC3
@@ -148,15 +149,15 @@ static void tft_set_window(uint8_t x, uint8_t y, uint8_t w, uint8_t h) {
   spi_send_cmd(TFT_CMD_RAMWR);
 }
 
-static void tft_draw_pixel(uint8_t x, uint8_t y, uint16_t color) {
+static void setpixel(uint8_t x, uint8_t y, uint16_t color) {
   gpio_write(PIN_CS, 0);
   tft_set_window(x, y, 1, 1);
   spi_write16(color);
   gpio_write(PIN_CS, 1);
 }
 
-static void tft_draw_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
-                          uint16_t color) {
+static void fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
+                      uint16_t color) {
   gpio_write(PIN_CS, 0);
   tft_set_window(x, y, w, h);
   for (int i = 0; i < w * h; i++) {
@@ -165,8 +166,8 @@ static void tft_draw_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h,
   gpio_write(PIN_CS, 1);
 }
 
-static void tft_line(mp_int_t x1, mp_int_t y1, mp_int_t x2, mp_int_t y2,
-                     uint16_t col) {
+static void line(mp_int_t x1, mp_int_t y1, mp_int_t x2, mp_int_t y2,
+                 uint16_t col) {
   mp_int_t dx = x2 - x1;
   mp_int_t sx;
   if (dx > 0) {
@@ -207,12 +208,12 @@ static void tft_line(mp_int_t x1, mp_int_t y1, mp_int_t x2, mp_int_t y2,
     if (steep) {
       if (0 <= y1 && y1 < screen_obj.width && 0 <= x1 &&
           x1 < screen_obj.height) {
-        tft_draw_pixel(y1, x1, col);
+        setpixel(y1, x1, col);
       }
     } else {
       if (0 <= x1 && x1 < screen_obj.width && 0 <= y1 &&
           y1 < screen_obj.height) {
-        tft_draw_pixel(x1, y1, col);
+        setpixel(x1, y1, col);
       }
     }
     while (e >= 0) {
@@ -224,13 +225,8 @@ static void tft_line(mp_int_t x1, mp_int_t y1, mp_int_t x2, mp_int_t y2,
   }
 
   if (0 <= x2 && x2 < screen_obj.width && 0 <= y2 && y2 < screen_obj.height) {
-    tft_draw_pixel(x2, y2, col);
+    setpixel(x2, y2, col);
   }
-}
-
-static void tft_clear_screen() {
-  return tft_draw_rect(0, 0, screen_obj.width, screen_obj.height,
-                       TFT_COLOR_BLACK);
 }
 
 void screen_init() {
@@ -331,13 +327,12 @@ void screen_init() {
   spi_send_cmd(TFT_CMD_NRON);
   sleep_us(10);
 
-  // Turn on the display.
+  // Clear the screen and then turn on the display.
   spi_send_cmd(TFT_CMD_ON);
   sleep_us(120);
 
   gpio_write(PIN_CS, 1);
-
-  tft_clear_screen();
+  fill_rect(0, 0, screen_obj.width, screen_obj.height, TFT_COLOR_BLACK);
 }
 
 static mp_obj_t screen_obj_init_helper(size_t n_args, const mp_obj_t *pos_args,
@@ -411,52 +406,308 @@ static mp_obj_t screen_line(size_t n_args, const mp_obj_t *args_in) {
   mp_int_t args[5]; // x1, y1, x2, y2, col
   screen_args(args_in, args, 5);
 
-  tft_line(args[0], args[1], args[2], args[3], args[4]);
+  line(args[0], args[1], args[2], args[3], args[4]);
   return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_line_obj, 6, 6, screen_line);
 
+static mp_obj_t screen_fill(mp_obj_t self_in, mp_obj_t col_in) {
+  mp_int_t col = mp_obj_get_int(col_in);
+  fill_rect(0, 0, screen_obj.width, screen_obj.height, col);
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_2(screen_fill_obj, screen_fill);
+
 static mp_obj_t screen_fill_rect(size_t n_args, const mp_obj_t *args_in) {
   mp_int_t args[5]; // x, y, w, h, col
   screen_args(args_in, args, 5);
-  tft_draw_rect(args[0], args[1], args[2], args[3], args[4]);
+  fill_rect(args[0], args[1], args[2], args[3], args[4]);
   return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_fill_rect_obj, 6, 6,
                                            screen_fill_rect);
 
+static mp_obj_t screen_hline(size_t n_args, const mp_obj_t *args_in) {
+  (void)n_args;
+
+  mp_int_t args[4]; // x, y, w, col
+  screen_args(args_in, args, 4);
+
+  fill_rect(args[0], args[1], args[2], 1, args[3]);
+
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_hline_obj, 5, 5,
+                                           screen_hline);
+
+static mp_obj_t screen_vline(size_t n_args, const mp_obj_t *args_in) {
+  (void)n_args;
+
+  mp_int_t args[4]; // x, y, h, col
+  screen_args(args_in, args, 4);
+
+  fill_rect(args[0], args[1], 1, args[2], args[3]);
+
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_vline_obj, 5, 5,
+                                           screen_vline);
+
+static mp_obj_t screen_rect(size_t n_args, const mp_obj_t *args_in) {
+  mp_int_t args[5]; // x, y, w, h, col
+  screen_args(args_in, args, 5);
+  if (n_args > 6 && mp_obj_is_true(args_in[6])) {
+    fill_rect(args[0], args[1], args[2], args[3], args[4]);
+  } else {
+    fill_rect(args[0], args[1], args[2], 1, args[4]);
+    fill_rect(args[0], args[1] + args[3] - 1, args[2], 1, args[4]);
+    fill_rect(args[0], args[1], 1, args[3], args[4]);
+    fill_rect(args[0] + args[2] - 1, args[1], 1, args[3], args[4]);
+  }
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_rect_obj, 6, 7, screen_rect);
+
+static void setpixel_checked(mp_int_t x, mp_int_t y, mp_int_t col,
+                             mp_int_t mask) {
+  if (mask && 0 <= x && x < screen_obj.width && 0 <= y &&
+      y < screen_obj.height) {
+    setpixel(x, y, col);
+  }
+}
+
 static mp_obj_t screen_pixel(size_t n_args, const mp_obj_t *args_in) {
   mp_int_t x = mp_obj_get_int(args_in[1]);
   mp_int_t y = mp_obj_get_int(args_in[2]);
-  if (0 <= x && x < screen_obj.width && 0 <= y && y < screen_obj.height) {
-    // set
-    tft_draw_pixel(x, y, mp_obj_get_int(args_in[3]));
-  }
+  setpixel_checked(x, y, mp_obj_get_int(args_in[3]), 1);
   return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_pixel_obj, 4, 4,
                                            screen_pixel);
 
+// Q2 Q1
+// Q3 Q4
+#define ELLIPSE_MASK_FILL (0x10)
+#define ELLIPSE_MASK_ALL (0x0f)
+#define ELLIPSE_MASK_Q1 (0x01)
+#define ELLIPSE_MASK_Q2 (0x02)
+#define ELLIPSE_MASK_Q3 (0x04)
+#define ELLIPSE_MASK_Q4 (0x08)
+
+static void draw_ellipse_points(mp_int_t cx, mp_int_t cy, mp_int_t x,
+                                mp_int_t y, mp_int_t col, mp_int_t mask) {
+  if (mask & ELLIPSE_MASK_FILL) {
+    if (mask & ELLIPSE_MASK_Q1) {
+      fill_rect(cx, cy - y, x + 1, 1, col);
+    }
+    if (mask & ELLIPSE_MASK_Q2) {
+      fill_rect(cx - x, cy - y, x + 1, 1, col);
+    }
+    if (mask & ELLIPSE_MASK_Q3) {
+      fill_rect(cx - x, cy + y, x + 1, 1, col);
+    }
+    if (mask & ELLIPSE_MASK_Q4) {
+      fill_rect(cx, cy + y, x + 1, 1, col);
+    }
+  } else {
+    setpixel_checked(cx + x, cy - y, col, mask & ELLIPSE_MASK_Q1);
+    setpixel_checked(cx - x, cy - y, col, mask & ELLIPSE_MASK_Q2);
+    setpixel_checked(cx - x, cy + y, col, mask & ELLIPSE_MASK_Q3);
+    setpixel_checked(cx + x, cy + y, col, mask & ELLIPSE_MASK_Q4);
+  }
+}
+
+static mp_obj_t screen_ellipse(size_t n_args, const mp_obj_t *args_in) {
+  mp_int_t args[5];
+  screen_args(args_in, args, 5); // cx, cy, xradius, yradius, col
+  mp_int_t mask =
+      (n_args > 6 && mp_obj_is_true(args_in[6])) ? ELLIPSE_MASK_FILL : 0;
+  if (n_args > 7) {
+    mask |= mp_obj_get_int(args_in[7]) & ELLIPSE_MASK_ALL;
+  } else {
+    mask |= ELLIPSE_MASK_ALL;
+  }
+  mp_int_t two_asquare = 2 * args[2] * args[2];
+  mp_int_t two_bsquare = 2 * args[3] * args[3];
+  mp_int_t x = args[2];
+  mp_int_t y = 0;
+  mp_int_t xchange = args[3] * args[3] * (1 - 2 * args[2]);
+  mp_int_t ychange = args[2] * args[2];
+  mp_int_t ellipse_error = 0;
+  mp_int_t stoppingx = two_bsquare * args[2];
+  mp_int_t stoppingy = 0;
+  while (stoppingx >= stoppingy) { // 1st set of points,  y' > -1
+    draw_ellipse_points(args[0], args[1], x, y, args[4], mask);
+    y += 1;
+    stoppingy += two_asquare;
+    ellipse_error += ychange;
+    ychange += two_asquare;
+    if ((2 * ellipse_error + xchange) > 0) {
+      x -= 1;
+      stoppingx -= two_bsquare;
+      ellipse_error += xchange;
+      xchange += two_bsquare;
+    }
+  }
+  // 1st point set is done start the 2nd set of points
+  x = 0;
+  y = args[3];
+  xchange = args[3] * args[3];
+  ychange = args[2] * args[2] * (1 - 2 * args[3]);
+  ellipse_error = 0;
+  stoppingx = 0;
+  stoppingy = two_asquare * args[3];
+  while (stoppingx <= stoppingy) { // 2nd set of points, y' < -1
+    draw_ellipse_points(args[0], args[1], x, y, args[4], mask);
+    x += 1;
+    stoppingx += two_bsquare;
+    ellipse_error += xchange;
+    xchange += two_bsquare;
+    if ((2 * ellipse_error + ychange) > 0) {
+      y -= 1;
+      stoppingy -= two_asquare;
+      ellipse_error += ychange;
+      ychange += two_asquare;
+    }
+  }
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_ellipse_obj, 6, 8,
+                                           screen_ellipse);
+
+static mp_int_t poly_int(mp_buffer_info_t *bufinfo, size_t index) {
+  return mp_obj_get_int(
+      mp_binary_get_val_array(bufinfo->typecode, bufinfo->buf, index));
+}
+
+static mp_obj_t screen_poly(size_t n_args, const mp_obj_t *args_in) {
+  mp_int_t x = mp_obj_get_int(args_in[1]);
+  mp_int_t y = mp_obj_get_int(args_in[2]);
+
+  mp_buffer_info_t bufinfo;
+  mp_get_buffer_raise(args_in[3], &bufinfo, MP_BUFFER_READ);
+  // If an odd number of values was given, this rounds down to multiple of two.
+  int n_poly =
+      bufinfo.len / (mp_binary_get_size('@', bufinfo.typecode, NULL) * 2);
+
+  if (n_poly == 0) {
+    return mp_const_none;
+  }
+
+  mp_int_t col = mp_obj_get_int(args_in[4]);
+  bool fill = n_args > 5 && mp_obj_is_true(args_in[5]);
+
+  if (fill) {
+    // This implements an integer version of
+    // http://alienryderflex.com/polygon_fill/
+
+    // The idea is for each scan line, compute the sorted list of x
+    // coordinates where the scan line intersects the polygon edges,
+    // then fill between each resulting pair.
+
+    // Restrict just to the scan lines that include the vertical extent of
+    // this polygon.
+    mp_int_t y_min = INT_MAX, y_max = INT_MIN;
+    for (int i = 0; i < n_poly; i++) {
+      mp_int_t py = poly_int(&bufinfo, i * 2 + 1);
+      y_min = MIN(y_min, py);
+      y_max = MAX(y_max, py);
+    }
+
+    for (mp_int_t row = y_min; row <= y_max; row++) {
+      // Each node is the x coordinate where an edge crosses this scan line.
+      mp_int_t nodes[n_poly];
+      int n_nodes = 0;
+      mp_int_t px1 = poly_int(&bufinfo, 0);
+      mp_int_t py1 = poly_int(&bufinfo, 1);
+      int i = n_poly * 2 - 1;
+      do {
+        mp_int_t py2 = poly_int(&bufinfo, i--);
+        mp_int_t px2 = poly_int(&bufinfo, i--);
+
+        // Don't include the bottom pixel of a given edge to avoid
+        // duplicating the node with the start of the next edge. This
+        // will miss some pixels on the boundary, and in particular
+        // at a local minima or inflection point.
+        if (py1 != py2 &&
+            ((py1 > row && py2 <= row) || (py1 <= row && py2 > row))) {
+          mp_int_t node =
+              (32 * px1 + 32 * (px2 - px1) * (row - py1) / (py2 - py1) + 16) /
+              32;
+          nodes[n_nodes++] = node;
+        } else if (row == MAX(py1, py2)) {
+          // At local-minima, try and manually fill in the pixels that get
+          // missed above.
+          if (py1 < py2) {
+            setpixel_checked(x + px2, y + py2, col, 1);
+          } else if (py2 < py1) {
+            setpixel_checked(x + px1, y + py1, col, 1);
+          } else {
+            // Even though this is a hline and would be faster to
+            // use fill_rect, use line() because it handles x2 <
+            // x1.
+            line(x + px1, y + py1, x + px2, y + py2, col);
+          }
+        }
+
+        px1 = px2;
+        py1 = py2;
+      } while (i >= 0);
+
+      if (!n_nodes) {
+        continue;
+      }
+
+      // Sort the nodes left-to-right (bubble-sort for code size).
+      i = 0;
+      while (i < n_nodes - 1) {
+        if (nodes[i] > nodes[i + 1]) {
+          mp_int_t swap = nodes[i];
+          nodes[i] = nodes[i + 1];
+          nodes[i + 1] = swap;
+          if (i) {
+            i--;
+          }
+        } else {
+          i++;
+        }
+      }
+
+      // Fill between each pair of nodes.
+      for (i = 0; i < n_nodes; i += 2) {
+        fill_rect(x + nodes[i], y + row, (nodes[i + 1] - nodes[i]) + 1, 1, col);
+      }
+    }
+  } else {
+    // Outline only.
+    mp_int_t px1 = poly_int(&bufinfo, 0);
+    mp_int_t py1 = poly_int(&bufinfo, 1);
+    int i = n_poly * 2 - 1;
+    do {
+      mp_int_t py2 = poly_int(&bufinfo, i--);
+      mp_int_t px2 = poly_int(&bufinfo, i--);
+      line(x + px1, y + py1, x + px2, y + py2, col);
+      px1 = px2;
+      py1 = py2;
+    } while (i >= 0);
+  }
+
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_poly_obj, 5, 6, screen_poly);
+
 static const mp_rom_map_elem_t screen_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_readreg), MP_ROM_PTR(&screen_readreg_obj)},
-#if 0
-    { MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&screen_fill_obj) },
-#endif
+    {MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&screen_fill_obj)},
     {MP_ROM_QSTR(MP_QSTR_fill_rect), MP_ROM_PTR(&screen_fill_rect_obj)},
     {MP_ROM_QSTR(MP_QSTR_pixel), MP_ROM_PTR(&screen_pixel_obj)},
-#if 0
-    { MP_ROM_QSTR(MP_QSTR_hline), MP_ROM_PTR(&screen_hline_obj) },
-    { MP_ROM_QSTR(MP_QSTR_vline), MP_ROM_PTR(&screen_vline_obj) },
-    { MP_ROM_QSTR(MP_QSTR_rect), MP_ROM_PTR(&screen_rect_obj) },
-#endif
+    {MP_ROM_QSTR(MP_QSTR_hline), MP_ROM_PTR(&screen_hline_obj)},
+    {MP_ROM_QSTR(MP_QSTR_vline), MP_ROM_PTR(&screen_vline_obj)},
+    {MP_ROM_QSTR(MP_QSTR_rect), MP_ROM_PTR(&screen_rect_obj)},
     {MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&screen_line_obj)},
+    {MP_ROM_QSTR(MP_QSTR_ellipse), MP_ROM_PTR(&screen_ellipse_obj)},
+    {MP_ROM_QSTR(MP_QSTR_poly), MP_ROM_PTR(&screen_poly_obj)},
 #if 0
-    { MP_ROM_QSTR(MP_QSTR_ellipse), MP_ROM_PTR(&screen_ellipse_obj) },
-#if MICROPY_PY_ARRAY
-    { MP_ROM_QSTR(MP_QSTR_poly), MP_ROM_PTR(&screen_poly_obj) },
-#endif
-    { MP_ROM_QSTR(MP_QSTR_blit), MP_ROM_PTR(&screen_blit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_scroll), MP_ROM_PTR(&screen_scroll_obj) },
     { MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&screen_text_obj) },
 #endif
 };
