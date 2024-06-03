@@ -698,42 +698,72 @@ static mp_obj_t screen_poly(size_t n_args, const mp_obj_t *args_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_poly_obj, 5, 6, screen_poly);
 
-static mp_obj_t screen_text(size_t n_args, const mp_obj_t *args_in) {
-    // extract arguments
-    const char *str = mp_obj_str_get_str(args_in[1]);
-    mp_int_t x0 = mp_obj_get_int(args_in[2]);
-    mp_int_t y0 = mp_obj_get_int(args_in[3]);
-    mp_int_t col = 1;
-    if (n_args >= 5) {
-        col = mp_obj_get_int(args_in[4]);
+static void drawchar(char c, int x, int y, int col, int rx, int ry, int dx,
+                     int dy) {
+  const uint8_t *cd = &font_petme128_8x8[(c - 32) * 8];
+  // loop over char data
+  for (int j = 0; j < 8; j++) {
+    uint8_t column = *cd++;
+    int k = 0;
+    while (column) {
+      if (column & 1) { // only draw if pixel set
+        int xx1 = x + rx * j + dx * k;
+        int yy1 = y + ry * j + dy * k;
+        int xx2 = xx1 + rx + dx;
+        int yy2 = yy1 + ry + dy;
+        fill_rect(MIN(xx1, xx2), MIN(yy1, yy2), abs(rx + dx), abs(ry + dy),
+                  col);
+      }
+      k++;
+      column >>= 1;
     }
-
-    // loop over chars
-    for (; *str; ++str) {
-        // get char and make sure its in range of font
-        int chr = *(uint8_t *)str;
-        if (chr < 32 || chr > 127) {
-            chr = 127;
-        }
-        // get char data
-        const uint8_t *chr_data = &font_petme128_8x8[(chr - 32) * 8];
-        // loop over char data
-        for (int j = 0; j < 8; j++, x0++) {
-            if (0 <= x0 && x0 < screen_obj.width) { // clip x
-                uint vline_data = chr_data[j]; // each byte is a column of 8 pixels, LSB at top
-                for (int y = y0; vline_data; vline_data >>= 1, y++) { // scan over vertical column
-                    if (vline_data & 1) { // only draw if pixel set
-                        if (0 <= y && y < screen_obj.height) { // clip y
-                            setpixel(x0, y, col);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return mp_const_none;
+  }
 }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_text_obj, 4, 5, screen_text);
+
+static mp_obj_t screen_text(size_t n_args, const mp_obj_t *args_in) {
+  static const int8_t directions[4][2][2] = {{{1, 0}, {0, 1}},
+                                             {{0, 1}, {-1, 0}},
+                                             {{-1, 0}, {0, -1}},
+                                             {{0, -1}, {1, 0}}};
+
+  const char *str = mp_obj_str_get_str(args_in[1]);
+  mp_int_t x = mp_obj_get_int(args_in[2]);
+  mp_int_t y = mp_obj_get_int(args_in[3]);
+  mp_int_t col = 0xffff;
+  mp_int_t rx = 1, ry = 0;
+  mp_int_t dx = 0, dy = 1;
+  if (n_args >= 5) {
+    col = mp_obj_get_int(args_in[4]);
+  }
+  if (n_args >= 6) {
+    int dir = mp_obj_get_int(args_in[5]) & 3;
+    rx = directions[dir][0][0];
+    ry = directions[dir][0][1];
+    dx = directions[dir][1][0];
+    dy = directions[dir][1][1];
+  }
+  if (n_args >= 7) {
+    int scale = mp_obj_get_int(args_in[6]);
+    rx *= scale;
+    ry *= scale;
+    dx *= scale;
+    dy *= scale;
+  }
+
+  // loop over chars
+  for (; *str; ++str) {
+    // get char and make sure its in range of font
+    int chr = *(uint8_t *)str;
+    if (chr < 32 || chr > 127) {
+      chr = 127;
+    }
+    drawchar(chr, x, y, col, rx, ry, dx, dy);
+    x += rx * 8;
+    y += ry * 8;
+  }
+  return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_text_obj, 4, 7, screen_text);
 
 static const mp_rom_map_elem_t screen_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_readreg), MP_ROM_PTR(&screen_readreg_obj)},
@@ -746,7 +776,7 @@ static const mp_rom_map_elem_t screen_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&screen_line_obj)},
     {MP_ROM_QSTR(MP_QSTR_ellipse), MP_ROM_PTR(&screen_ellipse_obj)},
     {MP_ROM_QSTR(MP_QSTR_poly), MP_ROM_PTR(&screen_poly_obj)},
-    { MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&screen_text_obj) },
+    {MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&screen_text_obj)},
 };
 static MP_DEFINE_CONST_DICT(screen_locals_dict, screen_locals_dict_table);
 
