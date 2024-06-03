@@ -48,16 +48,6 @@ void NORETURN __fatal_error(const char *msg) {
 
 void nlr_jump_fail(void *val) { __fatal_error("NLR jump fail"); }
 
-void mp_hal_delay_us(uint32_t delay) { sleep_us(delay); }
-
-void mp_hal_delay_ms(uint32_t delay) { sleep_us(delay * 1000); }
-
-uint32_t mp_hal_ticks_cpu() { return clock_time(); }
-
-uint32_t mp_hal_ticks_us() {
-  return clock_time() / CLOCK_16M_SYS_TIMER_CLK_1US;
-}
-
 #if !MICROPY_DEBUG_PRINTERS
 // With MICROPY_DEBUG_PRINTERS disabled DEBUG_printf is not defined but it
 // is still needed by esp-open-lwip for debugging output, so define it here.
@@ -72,12 +62,14 @@ int DEBUG_printf(const char *fmt, ...) {
 }
 #endif
 
-MP_NOINLINE static void main_impl() {
+MP_NOINLINE static void hard_init() {
   cpu_wakeup_init();
   clock_init(SYS_CLK_16M_Crystal);
   gpio_init();
-
   uart_init();
+}
+
+MP_NOINLINE static void soft_init() {
 
   /* The Telink SDK doesn't define any symbols for these, so we just hard code
    * it. The stack starts at the end of memory, 0x80c000. We leave 1kB for it,
@@ -86,25 +78,51 @@ MP_NOINLINE static void main_impl() {
   mp_init();
   machine_init();
 
-  pyexec_frozen_module("_boot.py", false);
-  int ret = pyexec_file_if_exists("boot.py");
-  if (ret)
-    mp_printf(&mp_plat_print, "Couldn't execute boot.py\n");
-
-  pyexec_friendly_repl();
   mp_deinit();
 }
 
+MP_NOINLINE static void repl() {
+  pyexec_frozen_module("_boot.py", false);
+  int ret = pyexec_file_if_exists("boot.py");
+  if (ret)
+    mp_printf(&mp_plat_print, "mpy: couldn't execute boot.py\n");
+
+  for (;;) {
+    if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
+      if (pyexec_raw_repl() != 0) {
+        return;
+      }
+    } else {
+      if (pyexec_friendly_repl() != 0) {
+        return;
+      }
+    }
+  }
+}
+
+MP_NOINLINE static void soft_deinit() {
+  mp_printf(&mp_plat_print, "vfs: sync filesystems\n");
+  machine_deinit();
+  gc_sweep_all();
+  mp_deinit();
+}
+
+// We should capture stack top ASAP after start, and it should be captured
+// guaranteedly before any other stack variables are allocated.  For this, the
+// functions being called here shouldn't be inlined into the nmain function, as
+// they may have stack variables.
 int main() {
-#if MICROPY_PY_THREAD
-  mp_thread_init();
-#endif
-  // We should capture stack top ASAP after start, and it should be
-  // captured guaranteedly before any other stack variables are allocated.
-  // For this, actual main (renamed main_impl) should not be inlined into
-  // this function. main_impl() itself may have other functions inlined (with
-  // their own stack variables), that's why we need this main/main_impl split.
-  mp_stack_ctrl_init();
-  main_impl();
+  hard_init();
+  for (;;) {
+    soft_init();
+
+    // Capture the stack.
+    mp_stack_ctrl_init();
+
+    repl();
+
+    mp_printf(&mp_plat_print, "mpy: soft reboot\n");
+    soft_deinit();
+  }
   return 0;
 }

@@ -74,9 +74,9 @@ SRC_C += \
 	main.c \
 	math.c \
 	modtc32.c \
+	mphalport.c \
 	tc32_flash.c \
 	tc32_screen.c \
-	uart.c \
 	$(TC32_SDK)/drivers/5316/adc.c \
 	$(TC32_SDK)/drivers/5316/analog.c \
 	$(TC32_SDK)/drivers/5316/bsp.c \
@@ -91,6 +91,7 @@ SRC_C += \
 	shared/runtime/pyexec.c \
 	shared/runtime/stdout_helpers.c \
 	shared/runtime/gchelper_native.c \
+	shared/runtime/sys_stdio_mphal.c \
 	lib/littlefs/lfs1.c \
 	lib/littlefs/lfs1_util.c \
 

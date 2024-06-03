@@ -29,6 +29,7 @@
 
 #include "modmachine.h"
 #include "machine_pin.h"
+#include "port.h"
 #include "py/mphal.h"
 
 #define MICROPY_PY_MACHINE_EXTRA_GLOBALS                                       \
