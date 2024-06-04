@@ -1,9 +1,9 @@
-#include <stdlib.h>
 #include "modtc32.h"
 #include "port.h"
 #include "py/binary.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
+#include <stdlib.h>
 
 #include "extmod/font_petme128_8x8.h"
 
@@ -699,58 +699,72 @@ static mp_obj_t screen_poly(size_t n_args, const mp_obj_t *args_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_poly_obj, 5, 6, screen_poly);
 
-static void drawchar(char c, int x, int y, int col, int rx, int ry, int dx,
-                     int dy) {
+static void drawchar(char c, int x, int y, int fg, int bg, int rx, int ry,
+                     int dx, int dy) {
   const uint8_t *cd = &font_petme128_8x8[(c - 32) * 8];
   // loop over char data
   for (int j = 0; j < 8; j++) {
     uint8_t column = *cd++;
-    int k = 0;
-    while (column) {
-      if (column & 1) { // only draw if pixel set
+    for (int k = 0; k < 8; k++) {
+      int c = (column & 1) ? fg : bg;
+      if (c != -1) {
         int xx1 = x + rx * j + dx * k;
         int yy1 = y + ry * j + dy * k;
         int xx2 = xx1 + rx + dx;
         int yy2 = yy1 + ry + dy;
-        fill_rect(MIN(xx1, xx2), MIN(yy1, yy2), abs(rx + dx), abs(ry + dy),
-                  col);
+        fill_rect(MIN(xx1, xx2), MIN(yy1, yy2), abs(rx + dx), abs(ry + dy), c);
       }
-      k++;
       column >>= 1;
     }
   }
 }
 
-static mp_obj_t screen_text(size_t n_args, const mp_obj_t *args_in) {
+static mp_obj_t screen_text(size_t n_args, const mp_obj_t *pos_args,
+                            mp_map_t *kw_args) {
   static const int8_t directions[4][2][2] = {{{1, 0}, {0, 1}},
                                              {{0, 1}, {-1, 0}},
                                              {{-1, 0}, {0, -1}},
                                              {{0, -1}, {1, 0}}};
 
-  const char *str = mp_obj_str_get_str(args_in[1]);
-  mp_int_t x = mp_obj_get_int(args_in[2]);
-  mp_int_t y = mp_obj_get_int(args_in[3]);
-  mp_int_t col = 0xffff;
-  mp_int_t rx, ry;
-  mp_int_t dx, dy;
-  mp_int_t dir = 0;
-  if (n_args >= 5) {
-    col = mp_obj_get_int(args_in[4]);
-  }
-  if (n_args >= 6) {
-    dir = mp_obj_get_int(args_in[5]) & 3;
-  }
-  rx = directions[dir][0][0];
-  ry = directions[dir][0][1];
-  dx = directions[dir][1][0];
-  dy = directions[dir][1][1];
-  if (n_args >= 7) {
-    int scale = mp_obj_get_int(args_in[6]);
-    rx *= scale;
-    ry *= scale;
-    dx *= scale;
-    dy *= scale;
-  }
+  enum {
+    ARG_self,
+    ARG_text,
+    ARG_x,
+    ARG_y,
+    ARG_fg,
+    ARG_bg,
+    ARG_dir,
+    ARG_xscale,
+    ARG_yscale
+  };
+
+  static const mp_arg_t allowed_args[] = {
+      {MP_QSTR_self, MP_ARG_REQUIRED | MP_ARG_OBJ},
+      {MP_QSTR_text, MP_ARG_REQUIRED | MP_ARG_OBJ},
+      {MP_QSTR_x, MP_ARG_REQUIRED | MP_ARG_INT},
+      {MP_QSTR_y, MP_ARG_REQUIRED | MP_ARG_INT},
+      {MP_QSTR_fg, MP_ARG_INT, {.u_int = 0xffff}},
+      {MP_QSTR_bg, MP_ARG_INT, {.u_int = -1}},
+      {MP_QSTR_dir, MP_ARG_INT, {.u_int = 0}},
+      {MP_QSTR_xscale, MP_ARG_INT, {.u_int = 1}},
+      {MP_QSTR_yscale, MP_ARG_INT, {.u_int = 1}}};
+
+  mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+  mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args),
+                   allowed_args, args);
+
+  const char *str = mp_obj_str_get_str(args[ARG_text].u_obj);
+  mp_int_t x = args[ARG_x].u_int;
+  mp_int_t y = args[ARG_y].u_int;
+  mp_int_t fg = args[ARG_fg].u_int;
+  mp_int_t bg = args[ARG_bg].u_int;
+  mp_int_t dir = args[ARG_dir].u_int;
+  mp_int_t xscale = args[ARG_xscale].u_int;
+  mp_int_t yscale = args[ARG_yscale].u_int;
+  mp_int_t rx = directions[dir][0][0] * xscale;
+  mp_int_t ry = directions[dir][0][1] * yscale;
+  mp_int_t dx = directions[dir][1][0] * xscale;
+  mp_int_t dy = directions[dir][1][1] * yscale;
 
   // loop over chars
   for (; *str; ++str) {
@@ -759,13 +773,13 @@ static mp_obj_t screen_text(size_t n_args, const mp_obj_t *args_in) {
     if (chr < 32 || chr > 127) {
       chr = 127;
     }
-    drawchar(chr, x, y, col, rx, ry, dx, dy);
+    drawchar(chr, x, y, fg, bg, rx, ry, dx, dy);
     x += rx * 8;
     y += ry * 8;
   }
   return mp_const_none;
 }
-static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(screen_text_obj, 4, 7, screen_text);
+static MP_DEFINE_CONST_FUN_OBJ_KW(screen_text_obj, 4, screen_text);
 
 static const mp_rom_map_elem_t screen_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_readreg), MP_ROM_PTR(&screen_readreg_obj)},
