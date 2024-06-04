@@ -72,9 +72,13 @@ MP_NOINLINE static void hard_init() {
 MP_NOINLINE static void soft_init() {
 
   /* The Telink SDK doesn't define any symbols for these, so we just hard code
-   * it. The stack starts at the end of memory, 0x80c000. We leave 2kB for it,
-   * meaning that our heap needs to end at 0x80b800. */
-  gc_init((void *)&_end_bss_, (void *)0x80b800);
+   * it. The stack starts at the end of memory, 0x80c000. We leave 1kB for it,
+   * meaning that our heap needs to end at 0x80bc00. */
+  gc_init((void *)&_end_bss_, (void *)0x80bc00);
+
+  /* Set up the stack corruption flag byte. */
+  *(uint8_t*)0x80bc00 = 42;
+
   mp_init();
   machine_init();
 }

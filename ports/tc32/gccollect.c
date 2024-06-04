@@ -27,9 +27,12 @@
 #include "py/gc.h"
 #include "py/mpthread.h"
 #include "shared/runtime/gchelper.h"
-// #include "shared/runtime/softtimer.h"
 
 void gc_collect(void) {
+  /* Check the flag byte to make sure the stack isn't corrupted. */
+  if (*(uint8_t*)0x80bc00 != 42)
+    mp_printf(&mp_plat_print, "mpy: stack corrupted! About to crash!\n");
+
   // start the GC
   gc_collect_start();
 
@@ -40,9 +43,6 @@ void gc_collect(void) {
 #if MICROPY_PY_THREAD
   mp_thread_gc_others();
 #endif
-
-  // trace soft timer nodes
-  // soft_timer_gc_mark_all();
 
   // end the GC
   gc_collect_end();
