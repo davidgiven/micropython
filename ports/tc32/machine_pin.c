@@ -61,13 +61,17 @@ const machine_pin_obj_t *machine_pin_find(mp_obj_t pin_in) {
     return pin_in;
   }
 
-  // Try to find the pin in the board pins dict.
   if (mp_obj_is_str(pin_in)) {
+    // Try to find the pin in the board pins dict.
     const machine_pin_obj_t *self =
         machine_pin_find_named(&machine_pin_board_pins_locals_dict, pin_in);
-    if (self && self->base.type != NULL) {
+    if (self && self->base.type != NULL)
       return self;
-    }
+
+    // Try to find the pin in the MCU pins pict.
+    self = machine_pin_find_named(&machine_pin_cpu_pins_locals_dict, pin_in);
+    if (self != NULL)
+      return self;
   }
 
   mp_raise_ValueError(MP_ERROR_TEXT("invalid pin"));
