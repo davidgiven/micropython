@@ -25,7 +25,6 @@
  */
 
 #include "modtc32.h"
-#include "port.h"
 #include "py/binary.h"
 #include "py/mphal.h"
 #include "py/runtime.h"

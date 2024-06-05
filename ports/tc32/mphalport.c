@@ -24,7 +24,8 @@
  * THE SOFTWARE.
  */
 
-#include "port.h"
+#include "mphalport.h"
+
 #include "py/mphal.h"
 #include "py/stream.h"
 

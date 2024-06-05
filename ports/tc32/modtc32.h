@@ -27,7 +27,7 @@
 #ifndef MICROPY_INCLUDED_TC32_MODTC32_H
 #define MICROPY_INCLUDED_TC32_MODTC32_H
 
-#include "port.h"
+#include "mphalport.h"
 #include "py/obj.h"
 
 extern const mp_obj_type_t tc32_flash_type;

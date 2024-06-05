@@ -27,7 +27,7 @@
 #ifndef MICROPY_INCLUDED_TC32_MODMACHINE_H
 #define MICROPY_INCLUDED_TC32_MODMACHINE_H
 
-#include "port.h"
+#include "mphalport.h"
 #include "py/obj.h"
 
 void machine_init(void);

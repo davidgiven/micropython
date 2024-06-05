@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "port.h"
+#include "mphalport.h"
 
 #include "extmod/modmachine.h"
 #include "extmod/vfs.h"
@@ -103,7 +103,7 @@ MP_NOINLINE static void soft_init() {
   gc_init((void *)&_end_bss_, (void *)0x80bc00);
 
   /* Set up the stack corruption flag byte. */
-  *(uint8_t*)0x80bc00 = 42;
+  *(uint8_t *)0x80bc00 = 42;
 
   mp_init();
   machine_init();

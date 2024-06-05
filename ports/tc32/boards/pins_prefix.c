@@ -1,7 +1,5 @@
 // pins_prefix.c becomes the initial portion of the generated pins file.
 
-#include "port.h"
-
 #include "extmod/modmachine.h"
 #include "machine_pin.h"
 #include "py/mphal.h"

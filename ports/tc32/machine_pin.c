@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "port.h"
+#include "mphalport.h"
 
 #include "extmod/modmachine.h"
 #include "extmod/virtpin.h"

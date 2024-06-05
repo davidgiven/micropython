@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 
-#include "port.h"
+#include "mphalport.h"
 
 #include "extmod/vfs.h"
 #include "modtc32.h"

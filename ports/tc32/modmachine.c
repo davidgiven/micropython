@@ -27,9 +27,10 @@
 // This file is never compiled standalone, it's included directly from
 // extmod/modmachine.c via MICROPY_PY_MACHINE_INCLUDEFILE.
 
+#include "mphalport.h"
+
 #include "modmachine.h"
 #include "machine_pin.h"
-#include "port.h"
 #include "py/mphal.h"
 
 #define MICROPY_PY_MACHINE_EXTRA_GLOBALS                                       \
