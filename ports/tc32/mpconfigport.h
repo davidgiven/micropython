@@ -1,3 +1,29 @@
+/*
+ * This file is part of the MicroPython project, http://micropython.org/
+ *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2013-2024 Damien P. George, David Given
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 #include <stdint.h>
 
 // options to control how MicroPython is built
@@ -21,7 +47,7 @@
 #define MICROPY_STACKLESS (1)
 
 // This doesn't work. Maybe Telink's floating point emulation is broken.
-#define MICROPY_FLOAT_IMPL (MICROPY_FLOAT_IMPL_FLOAT)
+// #define MICROPY_FLOAT_IMPL (MICROPY_FLOAT_IMPL_FLOAT)
 
 #define MICROPY_PY_MACHINE (1)
 #define MICROPY_PY_MACHINE_INCLUDEFILE "ports/tc32/modmachine.c"
@@ -59,9 +85,5 @@ typedef long mp_off_t;
 
 #define MICROPY_HW_BOARD_NAME "lt716"
 #define MICROPY_HW_MCU_NAME "tc32"
-
-#define MICROPY_MIN_USE_CORTEX_CPU (0)
-#define MICROPY_MIN_USE_STM32_MCU (0)
-#define MICROPY_HEAP_SIZE (2048) // heap size 2 kilobytes
 
 #define MP_STATE_PORT MP_STATE_VM

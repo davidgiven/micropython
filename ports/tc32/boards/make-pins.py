@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import os
 import re
 import sys
@@ -11,7 +11,7 @@ import boardgen
 
 
 # These are the columns of the af.csv as well as the arguments to the PIN()
-# macro in samd_prefix.c.
+# macro in pins_prefix.c.
 AFS = {
     "TLSR8232": ["af0", "af1", "af2", "af3", "af4"],
 }
