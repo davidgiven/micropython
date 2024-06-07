@@ -44,4 +44,6 @@ Notable missing features:
   Other models seem to have different screens.
 - no power management (it will run for about 40 minutes off the battery).
 - no pin features except GPIO.
+- no BLE support --- the Telink SDK's BLE stack uses about 10kB of RAM and there
+  just isn't enough.
 - floating point.
