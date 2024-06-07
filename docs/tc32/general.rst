@@ -36,4 +36,12 @@ The following hardware is supported:
 - GPIO pins, via the `machine.Pin` class
 - the screen, via the `tc32.Screen` class
 - battery voltage measurement via `tc32.battery_mv()`
+- the button (via `Pin("BUTTON", Pin.IN)`).
 
+Notable missing features:
+
+- the screen is hardcoded for my LT716 smartwatch with a GC9106 80x160 screen.
+  Other models seem to have different screens.
+- no power management (it will run for about 40 minutes off the battery).
+- no pin features except GPIO.
+- floating point.
