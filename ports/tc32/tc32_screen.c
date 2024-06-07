@@ -80,6 +80,10 @@
 #define TFT_CMD_VSCRDEF 0x33
 // Set vertical scroll position (page 218).
 #define TFT_CMD_VSCSAD 0x37
+// Idle mode off (full-colour mode)
+#define TFT_CMD_IDLEOFF 0x38
+// Idle mode on (8-colour low power mode)
+#define TFT_CMD_IDLEON 0x39
 
 // When the TFT is screen side up, ribbon connector on top:
 // 1. Without any mirroring:
