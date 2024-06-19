@@ -17,6 +17,11 @@ function ci_gcc_arm_setup {
     arm-none-eabi-gcc --version
 }
 
+function ci_gcc_riscv_setup {
+    sudo apt-get install gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
+    riscv64-unknown-elf-gcc --version
+}
+
 ########################################################################################
 # c code formatting
 
@@ -55,7 +60,7 @@ function ci_code_size_setup {
 function ci_code_size_build {
     # check the following ports for the change in their code size
     PORTS_TO_CHECK=bmusxpd
-    SUBMODULES="lib/asf4 lib/berkeley-db-1.xx lib/mbedtls lib/micropython-lib lib/nxp_driver lib/pico-sdk lib/stm32lib lib/tinyusb"
+    SUBMODULES="lib/asf4 lib/berkeley-db-1.xx lib/btstack lib/cyw43-driver lib/lwip lib/mbedtls lib/micropython-lib lib/nxp_driver lib/pico-sdk lib/stm32lib lib/tinyusb"
 
     # starts off at either the ref/pull/N/merge FETCH_HEAD, or the current branch HEAD
     git checkout -b pull_request # save the current location
@@ -257,6 +262,25 @@ function ci_qemu_arm_build {
     make ${MAKEOPTS} -C ports/qemu-arm -f Makefile.test test
     make ${MAKEOPTS} -C ports/qemu-arm -f Makefile.test clean
     make ${MAKEOPTS} -C ports/qemu-arm -f Makefile.test BOARD=sabrelite test
+}
+
+########################################################################################
+# ports/qemu-riscv
+
+function ci_qemu_riscv_setup {
+    ci_gcc_riscv_setup
+    sudo apt-get update
+    sudo apt-get install qemu-system
+    qemu-system-riscv32 --version
+}
+
+function ci_qemu_riscv_build {
+    make ${MAKEOPTS} -C mpy-cross
+    make ${MAKEOPTS} -C ports/qemu-riscv submodules
+    make ${MAKEOPTS} -C ports/qemu-riscv
+    make ${MAKEOPTS} -C ports/qemu-riscv clean
+    make ${MAKEOPTS} -C ports/qemu-riscv -f Makefile.test submodules
+    make ${MAKEOPTS} -C ports/qemu-riscv -f Makefile.test test
 }
 
 ########################################################################################
